@@ -1,0 +1,18 @@
+version: '3'
+
+services:
+  web:
+    build: .
+    labels:
+      - traefik.enable=true
+      - traefik.port=3000
+      - traefik.docker.network=proxy
+      - traefik.frontend.rule=Host:figma-chat.ph1p.dev
+
+    networks:
+      - default
+      - proxy
+
+networks:
+  proxy:
+    external: true
