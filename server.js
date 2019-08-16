@@ -21,18 +21,19 @@ app.get('/', (req, res) => {
   });
 });
 
-const createUser = (name = '', color = '', room = '') => ({
-  name: '',
-  color: '',
-  room: ''
+const createUser = (id = '', name = '', color = '', room = '') => ({
+  id,
+  name,
+  color,
+  room
 });
 
 io.on('connection', socket => {
-  let user = (sockets[socket.id] = createUser());
+  let user = (sockets[socket.id] = createUser(socket.id));
 
   socket.on('chat message', ({ roomName, message }) => {
     if (!user) {
-      user = sockets[socket.id] = createUser();
+      user = sockets[socket.id] = createUser(socket.id);
     }
 
     if (roomName) {
@@ -50,7 +51,8 @@ io.on('connection', socket => {
     }
   });
 
-  socket.on('connected', () => socket.emit('connected', user));
+  socket.emit('connected', user);
+
   socket.on('set username', name => (user.name = name));
   socket.on('reconnect', () => socket.emit('user reconnected'));
 
