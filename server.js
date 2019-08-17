@@ -4,6 +4,7 @@ const io = require('socket.io')(http);
 const port = process.env.PORT || 3000;
 
 const sockets = {};
+const rooms = {};
 
 const colors = {
   blue: '#18A0FB',
@@ -31,6 +32,31 @@ const createUser = (id = '', name = '', color = '', room = '') => ({
 io.on('connection', socket => {
   let user = (sockets[socket.id] = createUser(socket.id));
 
+  function sendOnline(room = '') {
+    try {
+      let userRoom = room;
+
+      if (!userRoom && sockets[socket.id]) {
+        userRoom = sockets[socket.id].room;
+      }
+
+      const usersInRoom = Object.keys(
+        io
+          .of('/')
+          .in(userRoom)
+          .clients().sockets
+      );
+
+      const users = usersInRoom.map(u => ({
+        ...sockets[user.id]
+      }));
+
+      io.in(userRoom).emit('online', users);
+    } catch (e) {
+      console.log(e);
+    }
+  }
+
   socket.on('chat message', ({ roomName, message }) => {
     if (!user) {
       user = sockets[socket.id] = createUser(socket.id);
@@ -52,19 +78,35 @@ io.on('connection', socket => {
   });
 
   socket.emit('connected', user);
+  sendOnline();
 
-  socket.on('set username', name => (user.name = name));
-  socket.on('reconnect', () => socket.emit('user reconnected'));
+  socket.on('set user', user => {
+    sockets[socket.id] = {
+      ...sockets[socket.id],
+      ...user
+    };
+
+    sendOnline();
+  });
+
+  socket.on('reconnect', () => {
+    sendOnline();
+
+    socket.emit('user reconnected');
+  });
 
   socket.on('join room', room => {
-    // console.log('join room', room);
-
     user.room = room;
     socket.join(room);
+
+    sendOnline();
   });
 
   socket.on('disconnect', () => {
+    const room = sockets[socket.id].room;
     delete sockets[socket.id];
+
+    sendOnline(room);
   });
 });
 
