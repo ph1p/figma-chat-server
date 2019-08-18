@@ -52,9 +52,7 @@ io.on('connection', socket => {
       }));
 
       io.in(userRoom).emit('online', users);
-    } catch (e) {
-      console.log(e);
-    }
+    } catch (e) {}
   }
 
   socket.on('chat message', ({ roomName, message }) => {
@@ -66,6 +64,7 @@ io.on('connection', socket => {
       if (!user.room) {
         user.room = roomName;
         socket.join(roomName);
+        sendOnline(roomName);
       }
 
       // send to all in room except sender
@@ -78,7 +77,6 @@ io.on('connection', socket => {
   });
 
   socket.emit('connected', user);
-  sendOnline();
 
   socket.on('set user', user => {
     sockets[socket.id] = {
@@ -99,7 +97,7 @@ io.on('connection', socket => {
     user.room = room;
     socket.join(room);
 
-    sendOnline();
+    sendOnline(room);
   });
 
   socket.on('disconnect', () => {
