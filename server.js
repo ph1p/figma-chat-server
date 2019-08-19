@@ -4,16 +4,6 @@ const io = require('socket.io')(http);
 const port = process.env.PORT || 3000;
 
 const sockets = {};
-const rooms = {};
-
-const colors = {
-  blue: '#18A0FB',
-  purple: '#7B61FF',
-  hotPink: '#FF00FF',
-  green: '#1BC47D',
-  red: '#F24822',
-  yellow: '#FFEB00'
-};
 
 app.get('/', (req, res) => {
   res.send({
