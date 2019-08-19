@@ -46,7 +46,7 @@ io.on('connection', socket => {
 
     if (roomName) {
       if (!user.room) {
-        user.room = roomName;
+        sockets[socket.id].room = roomName;
         socket.join(roomName);
         sendOnline(roomName);
       }
@@ -78,7 +78,7 @@ io.on('connection', socket => {
   });
 
   socket.on('join room', room => {
-    user.room = room;
+    sockets[socket.id].room = room;
     socket.join(room);
 
     sendOnline(room);
