@@ -30,18 +30,12 @@ io.on('connection', socket => {
         userRoom = sockets[socket.id].room;
       }
 
-      const usersInRoom = Object.keys(
-        io
-          .of('/')
-          .in(userRoom)
-          .clients().sockets
-      );
-
-      const users = usersInRoom.map(u => ({
-        ...sockets[user.id]
-      }));
-
-      io.in(userRoom).emit('online', users);
+      io.in(userRoom).clients((err, clients) => {
+        const users = clients.map(id => ({
+          ...sockets[id]
+        }));
+        io.in(userRoom).emit('online', users);
+      });
     } catch (e) {}
   }
 
