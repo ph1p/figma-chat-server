@@ -60,7 +60,7 @@ io.on('connection', socket => {
     }
   });
 
-  socket.emit('connected', user);
+  setTimeout(() => socket.emit('connected', user), 100);
 
   socket.on('set user', user => {
     sockets[socket.id] = {
