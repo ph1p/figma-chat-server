@@ -10,8 +10,8 @@
   "keywords": [],
   "author": "Philip Stapelfeldt <phil@capshake.com>",
   "repository": {
-    "type" : "git",
-    "url" : "https://github.com/ph1p/figma-chat-server.git"
+    "type": "git",
+    "url": "https://github.com/ph1p/figma-chat-server.git"
   },
   "bugs": {
     "url": "https://github.com/ph1p/figma-chat-server/issues"
@@ -19,9 +19,9 @@
   "license": "MIT",
   "dependencies": {
     "express": "^4.17.1",
-    "socket.io": "^2.2.0"
+    "socket.io": "^2.3.0"
   },
   "devDependencies": {
-    "nodemon": "^1.19.1"
+    "nodemon": "^1.19.4"
   }
 }
