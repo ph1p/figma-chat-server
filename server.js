@@ -39,6 +39,14 @@ io.on('connection', socket => {
     } catch (e) {}
   }
 
+  function joinLeave(socket, room, type = 'JOIN') {
+    socket.broadcast.to(room).emit('join leave message', {
+      id: socket.id,
+      user: sockets[socket.id],
+      type
+    });
+  }
+
   socket.on('chat message', ({ roomName, message }) => {
     if (!user) {
       user = sockets[socket.id] = createUser(socket.id);
@@ -81,11 +89,17 @@ io.on('connection', socket => {
     sockets[socket.id].room = room;
     socket.join(room);
 
+    joinLeave(socket, room);
+
     sendOnline(room);
   });
 
   socket.on('disconnect', () => {
     const room = sockets[socket.id].room;
+
+
+    joinLeave(socket, room, 'LEAVE');
+
     delete sockets[socket.id];
 
     sendOnline(room);
