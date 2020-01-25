@@ -85,20 +85,12 @@ io.on('connection', socket => {
     socket.emit('user reconnected');
   });
 
-  socket.on('join room', (data) => {
-    let room;
-    if (typeof data === 'string') {
-      sockets[socket.id].room = data;
-      room = data;
-    } else {
-      sockets[socket.id].room = data.room;
-      room = data.room;
-    }
-
+  socket.on('join room', ({ room, settings }) => {
     socket.join(room, () => {
       sockets[socket.id] = {
         ...sockets[socket.id],
-        ...data.settings
+        ...settings,
+        room
       };
 
       joinLeave(socket, room);
