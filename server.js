@@ -91,17 +91,19 @@ io.on('connection', socket => {
       sockets[socket.id].room = data;
       room = data;
     } else {
-      sockets[socket.id] = {
-        ...sockets[socket.id],
-        ...data.settings,
-        room: data.room
-      };
+      sockets[socket.id].room = data.room;
       room = data.room;
     }
 
-    socket.join(room);
-    joinLeave(socket, room);
-    sendOnline(room);
+    socket.join(room, () => {
+      sockets[socket.id] = {
+        ...sockets[socket.id],
+        ...data.settings
+      };
+
+      joinLeave(socket, room);
+      sendOnline(room);
+    });
   });
 
   socket.on('disconnect', () => {
