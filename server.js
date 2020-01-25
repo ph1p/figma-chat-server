@@ -36,7 +36,7 @@ io.on('connection', socket => {
         }));
         io.in(userRoom).emit('online', users);
       });
-    } catch (e) {}
+    } catch (e) { }
   }
 
   function joinLeave(socket, room, type = 'JOIN') {
@@ -85,18 +85,27 @@ io.on('connection', socket => {
     socket.emit('user reconnected');
   });
 
-  socket.on('join room', room => {
-    sockets[socket.id].room = room;
+  socket.on('join room', (data) => {
+    let room;
+    if (typeof data === 'string') {
+      sockets[socket.id].room = data;
+      room = data;
+    } else {
+      sockets[socket.id] = {
+        ...sockets[socket.id],
+        ...data.settings,
+        room: data.room
+      };
+      room = data.room;
+    }
+
     socket.join(room);
-
     joinLeave(socket, room);
-
     sendOnline(room);
   });
 
   socket.on('disconnect', () => {
     const room = sockets[socket.id].room;
-
 
     joinLeave(socket, room, 'LEAVE');
 
