@@ -77,8 +77,6 @@ io.on('connection', (socket) => {
     }
   });
 
-  setTimeout(() => socket.volatile.emit('connected', socket.user), 100);
-
   socket.on('set user', (userOptions) => {
     socket.user = {
       ...socket.user,
