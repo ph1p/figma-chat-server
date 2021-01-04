@@ -1,14 +1,18 @@
 const app = require('express')();
+const pkg = require('./package.json');
 const http = require('http').Server(app);
-const io = require('socket.io')(http);
+const io = require('socket.io')(http, {
+  cors: {
+    origin: '*',
+    methods: ['GET', 'POST'],
+  },
+});
 const port = process.env.PORT || 3000;
-
-const sockets = {};
 
 app.get('/', (req, res) => {
   res.send({
     name: 'figma-chat',
-    version: '1.0.0'
+    version: pkg.version,
   });
 });
 
@@ -16,45 +20,50 @@ const createUser = (id = '', name = '', color = '', room = '') => ({
   id,
   name,
   color,
-  room
+  room,
 });
 
-io.on('connection', socket => {
-  let user = (sockets[socket.id] = createUser(socket.id));
+io.on('connection', (socket) => {
+  if (!socket.user) {
+    socket.user = createUser(socket.id);
+  }
 
-  function sendOnline(room = '') {
+  async function sendOnline(room = '') {
     try {
       let userRoom = room;
 
-      if (!userRoom && sockets[socket.id]) {
-        userRoom = sockets[socket.id].room;
+      if (socket?.user?.room) {
+        userRoom = socket.user.room;
       }
 
-      io.in(userRoom).clients((err, clients) => {
-        const users = clients.map(id => ({
-          ...sockets[id]
-        }));
+      if (userRoom) {
+        const sockets = await io.of('/').in(userRoom).allSockets();
+        const users = Array.from(sockets)
+          .map((id) => io.of('/').sockets.get(id))
+          .filter(Boolean)
+          .map((s) => s.user);
+
         io.in(userRoom).emit('online', users);
-      });
-    } catch (e) { }
+      }
+    } catch (e) {
+      console.log(e);
+    }
   }
 
-  function joinLeave(socket, room, type = 'JOIN') {
-    socket.broadcast.to(room).emit('join leave message', {
-      id: socket.id,
-      user: sockets[socket.id],
-      type
-    });
+  function joinLeave(currentSocket, type = 'JOIN') {
+    currentSocket.broadcast
+      .to(currentSocket.user.room)
+      .emit('join leave message', {
+        id: currentSocket.id,
+        user: currentSocket.user,
+        type,
+      });
   }
 
   socket.on('chat message', ({ roomName, message }) => {
-    if (!user) {
-      user = sockets[socket.id] = createUser(socket.id);
-    }
-
     if (roomName) {
-      if (!user.room) {
-        sockets[socket.id].room = roomName;
+      if (!socket.user.room) {
+        socket.user.room = roomName;
         socket.join(roomName);
         sendOnline(roomName);
       }
@@ -62,18 +71,18 @@ io.on('connection', socket => {
       // send to all in room except sender
       socket.broadcast.to(roomName).emit('chat message', {
         id: socket.id,
-        user: sockets[socket.id],
-        message
+        user: socket.user,
+        message,
       });
     }
   });
 
-  setTimeout(() => socket.emit('connected', user), 100);
+  setTimeout(() => socket.volatile.emit('connected', socket.user), 100);
 
-  socket.on('set user', user => {
-    sockets[socket.id] = {
-      ...sockets[socket.id],
-      ...user
+  socket.on('set user', (userOptions) => {
+    socket.user = {
+      ...socket.user,
+      ...userOptions,
     };
 
     sendOnline();
@@ -86,26 +95,23 @@ io.on('connection', socket => {
   });
 
   socket.on('join room', ({ room, settings }) => {
-    socket.join(room, () => {
-      sockets[socket.id] = {
-        ...sockets[socket.id],
-        ...settings,
-        room
-      };
+    socket.join(room);
 
-      joinLeave(socket, room);
-      sendOnline(room);
-    });
+    socket.user = {
+      ...socket.user,
+      ...settings,
+      room,
+    };
+
+    joinLeave(socket);
+    sendOnline(room);
   });
 
   socket.on('disconnect', () => {
-    const room = sockets[socket.id].room;
+    joinLeave(socket, 'LEAVE');
+    socket.leave(socket.user.room);
 
-    joinLeave(socket, room, 'LEAVE');
-
-    delete sockets[socket.id];
-
-    sendOnline(room);
+    sendOnline(socket.user.room);
   });
 });
 
